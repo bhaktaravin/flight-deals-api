@@ -10,10 +10,12 @@ import { NotificationsModule } from '../notifications/notifications.module';
 @Module({
   imports: [
     BullModule.forRoot({
-      redis: process.env.REDIS_URL || {
-        host: 'localhost',
-        port: 6379,
-      },
+      redis: process.env.REDIS_URL
+        ? process.env.REDIS_URL
+        : {
+            host: 'localhost',
+            port: 6379,
+          },
     }),
     BullModule.registerQueue({
       name: 'price-check',
