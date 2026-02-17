@@ -4,9 +4,9 @@ services:
     container_name: flight_postgres
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: flight
+      POSTGRES_PASSWORD: flightpass
+      POSTGRES_DB: flight_deals
     ports:
       - "5432:5432"
     volumes:
