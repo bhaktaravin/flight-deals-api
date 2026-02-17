@@ -10,7 +10,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 @Module({
   imports: [
     BullModule.forRoot({
-      redis: {
+      redis: process.env.REDIS_URL || {
         host: 'localhost',
         port: 6379,
       },

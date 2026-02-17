@@ -3,10 +3,12 @@ import Redis from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
-  private client = new Redis({
-    host: 'localhost',
-    port: 6379,
-  });
+  private client = new Redis(
+    process.env.REDIS_URL || {
+      host: 'localhost',
+      port: 6379,
+    },
+  );
 
   getClient() {
     return this.client;
