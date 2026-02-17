@@ -7,6 +7,10 @@ import { FlightOffer } from '../../search/models/flight-offer.model';
 import { AmadeusAuthService } from './amadeus-auth.service';
 import { AmadeusTransformService } from './amadeus-transform.service';
 import { AmadeusFlightOffersResponse } from './types/amadeus-response.types';
+import {
+  ExternalApiException,
+  BusinessException,
+} from '../../common/exceptions/business.exception';
 
 @Injectable()
 export class AmadeusProvider implements FlightProvider {
@@ -70,6 +74,11 @@ export class AmadeusProvider implements FlightProvider {
     } catch (error) {
       this.logger.error('Failed to search flights from Amadeus', error);
 
+      // Re-throw ExternalApiException from auth service
+      if (error instanceof ExternalApiException) {
+        throw error;
+      }
+
       // Handle specific HTTP errors
       if (error.response) {
         const status = error.response.status;
@@ -77,24 +86,45 @@ export class AmadeusProvider implements FlightProvider {
 
         switch (status) {
           case 400:
-            throw new Error(`Invalid request: ${JSON.stringify(data)}`);
+            const errorMessage = data?.errors?.[0]?.detail || 'Invalid search parameters';
+            throw new BusinessException(errorMessage, 400);
           case 401:
             // Clear cached token and let the next request fetch a new one
             await this.authService.clearToken();
-            throw new Error('Authentication failed. Please try again.');
+            throw new ExternalApiException(
+              'Authentication failed. Please try again.',
+              'amadeus',
+              503,
+            );
           case 429:
-            throw new Error('Rate limit exceeded. Please try again later.');
+            throw new ExternalApiException(
+              'Too many requests. Please try again in a few moments.',
+              'amadeus',
+              429,
+            );
           case 500:
           case 502:
           case 503:
-            throw new Error('Amadeus API is temporarily unavailable. Please try again later.');
+            throw new ExternalApiException(
+              'Flight search service temporarily unavailable. Please try again later.',
+              'amadeus',
+              503,
+            );
           default:
-            throw new Error(`Amadeus API error: ${status} - ${JSON.stringify(data)}`);
+            throw new ExternalApiException(
+              'Unable to search flights at this time',
+              'amadeus',
+              503,
+            );
         }
       }
 
       // Generic error
-      throw new Error(`Failed to search flights: ${error.message}`);
+      throw new ExternalApiException(
+        'Failed to search flights. Please try again.',
+        'amadeus',
+        503,
+      );
     }
   }
 }

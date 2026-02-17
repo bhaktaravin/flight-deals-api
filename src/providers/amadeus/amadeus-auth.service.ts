@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { RedisService } from '../../redis/redis.service';
 import { AmadeusAuthResponse } from './types/amadeus-response.types';
 import { firstValueFrom } from 'rxjs';
+import { ExternalApiException } from '../../common/exceptions/business.exception';
 
 @Injectable()
 export class AmadeusAuthService {
@@ -41,7 +42,11 @@ export class AmadeusAuthService {
     const baseUrl = process.env.AMADEUS_BASE_URL || 'https://test.api.amadeus.com';
 
     if (!clientId || !clientSecret) {
-      throw new Error('Amadeus credentials not configured. Please set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET in .env');
+      throw new ExternalApiException(
+        'Amadeus credentials not configured. Please contact support.',
+        'amadeus',
+        500,
+      );
     }
 
     try {
@@ -71,13 +76,31 @@ export class AmadeusAuthService {
     } catch (error) {
       this.logger.error('Failed to fetch Amadeus token', error);
 
+      if (error instanceof ExternalApiException) {
+        throw error;
+      }
+
       if (error.response) {
-        throw new Error(
-          `Amadeus authentication failed: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
+        const status = error.response.status;
+        if (status === 401) {
+          throw new ExternalApiException(
+            'Invalid Amadeus API credentials',
+            'amadeus',
+            503,
+          );
+        }
+        throw new ExternalApiException(
+          'Failed to authenticate with Amadeus. Please try again later.',
+          'amadeus',
+          503,
         );
       }
 
-      throw new Error(`Amadeus authentication failed: ${error.message}`);
+      throw new ExternalApiException(
+        'Amadeus service temporarily unavailable',
+        'amadeus',
+        503,
+      );
     }
   }
 

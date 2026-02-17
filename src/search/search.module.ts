@@ -11,7 +11,7 @@ import { MockFlightProvider } from '../providers/mock/mock.provider';
 import { AmadeusProvider } from '../providers/amadeus/amadeus.provider';
 
 @Module({
-  imports: [ProvidersModule, /* PrismaModule, */ HttpModule, RedisModule, AmadeusModule],
+  imports: [ProvidersModule, PrismaModule, HttpModule, RedisModule, AmadeusModule],
   controllers: [SearchController],
   providers: [
     {

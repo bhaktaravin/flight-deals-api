@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { RedisService } from '../redis/redis.service';
 import { AmadeusAuthService } from '../providers/amadeus/amadeus-auth.service';
 import { AmadeusLocationResponse } from '../providers/amadeus/types/amadeus-response.types';
+import { ExternalApiException } from '../common/exceptions/business.exception';
 
 export interface AirportResult {
   code: string;
@@ -79,13 +80,26 @@ export class AirportService {
     } catch (error) {
       this.logger.error(`Failed to fetch airports for query: ${normalized}`, error);
 
+      // Re-throw ExternalApiException from auth service
+      if (error instanceof ExternalApiException) {
+        throw error;
+      }
+
       // Handle errors gracefully
       if (error.response?.status === 401) {
         await this.authService.clearToken();
-        throw new Error('Authentication failed. Please try again.');
+        throw new ExternalApiException(
+          'Authentication failed. Please try again.',
+          'amadeus',
+          503,
+        );
       }
 
-      throw new Error('Failed to search airports. Please try again.');
+      throw new ExternalApiException(
+        'Unable to search airports at this time. Please try again.',
+        'amadeus',
+        503,
+      );
     }
   }
 

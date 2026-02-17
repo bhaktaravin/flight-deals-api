@@ -36,9 +36,9 @@ model FlightSearch {
 }
 
 model FlightResult {
-  id              String @id @default(uuid())
+  id              String  @id @default(uuid())
   provider        String
-  price           Int
+  price           Decimal @db.Decimal(10, 2)
   currency        String
   durationMinutes Int
   stops           Int
@@ -60,4 +60,41 @@ model FlightSegment {
 
   resultId String
   result   FlightResult @relation(fields: [resultId], references: [id])
+}
+
+model PriceAlert {
+  id          String   @id @default(uuid())
+  origin      String
+  destination String
+  departDate  DateTime
+  passengers  Int            @default(1)
+  targetPrice Decimal        @db.Decimal(10, 2)
+  currency    String         @default("USD")
+  email       String?
+  webhook     String?
+  status      AlertStatus    @default(ACTIVE)
+  lastChecked DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  notifications PriceAlertNotification[]
+
+  @@index([status, lastChecked])
+  @@index([origin, destination, departDate])
+}
+
+model PriceAlertNotification {
+  id          String   @id @default(uuid())
+  alertId     String
+  alert       PriceAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  currentPrice Decimal  @db.Decimal(10, 2)
+  message     String
+  sentAt      DateTime @default(now())
+}
+
+enum AlertStatus {
+  ACTIVE
+  PAUSED
+  EXPIRED
+  TRIGGERED
 }
